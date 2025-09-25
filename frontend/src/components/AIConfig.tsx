@@ -39,6 +39,7 @@ function AIConfigComponent({ ai, setAi, title }: AIConfigProps) {
           value={ai.model}
           onChange={(e) => setAi({ ...ai, model: e.target.value })}
         />
+        <label>自定义提示词:</label>
         <textarea
           placeholder="Custom Prompt (max 200 chars)"
           value={ai.customPrompt}
@@ -47,7 +48,7 @@ function AIConfigComponent({ ai, setAi, title }: AIConfigProps) {
               setAi({ ...ai, customPrompt: e.target.value })
             }
           }}
-          rows={3}
+          rows={5}
           maxLength={200}
         />
       </div>

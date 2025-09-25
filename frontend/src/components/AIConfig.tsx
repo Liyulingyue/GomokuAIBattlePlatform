@@ -4,6 +4,7 @@ interface AIConfig {
   url: string
   key: string
   model: string
+  customPrompt: string
 }
 
 interface AIConfigProps {
@@ -37,6 +38,17 @@ function AIConfigComponent({ ai, setAi, title }: AIConfigProps) {
           placeholder="Model"
           value={ai.model}
           onChange={(e) => setAi({ ...ai, model: e.target.value })}
+        />
+        <textarea
+          placeholder="Custom Prompt (max 200 chars)"
+          value={ai.customPrompt}
+          onChange={(e) => {
+            if (e.target.value.length <= 200) {
+              setAi({ ...ai, customPrompt: e.target.value })
+            }
+          }}
+          rows={3}
+          maxLength={200}
         />
       </div>
     </div>

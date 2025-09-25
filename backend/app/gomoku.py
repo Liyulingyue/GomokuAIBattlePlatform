@@ -1,5 +1,8 @@
 import openai
+import json
 from typing import Tuple
+
+
 
 class GomokuBoard:
     def __init__(self, size=15):
@@ -46,18 +49,84 @@ class GomokuBoard:
         return all(all(cell != 0 for cell in row) for row in self.board)
 
 
-def call_ai(board_state, player, api_key, model="gpt-3.5-turbo", url=""):
+def extract_json_content(text):
+    """
+    从模型返回结果中提取JSON内容
+
+    参数：
+        text (str): 模型返回的原始文本
+
+    返回：
+        list: 解析后的QA对列表
+    """
+    # 检查是否是思考模型的输出，如果存在</think>标签，则只取后半部分
+    if "</think>" in text:
+        text = text.split("</think>")[-1]
+
+    start_marker = "```json"
+    end_marker = "```"
+
+    # 找到起始和结束标记的位置
+    start_index = text.find(start_marker)
+    end_index = text.find(end_marker, start_index + len(start_marker))
+
+    # 如果找到了标记，则提取JSON部分
+    if start_index != -1 and end_index != -1:
+        json_content = text[start_index + len(start_marker) : end_index].strip()
+
+        # 使用json将字符串形式的列表转换为Python列表
+        try:
+            json_list = json.loads(json_content)
+            return json_list
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+            return []
+    else:
+        return []
+
+def get_prompt(board_state, player, error="", custom_prompt=""):
+    prompt = f"""
+    You are playing Gomoku on a 15x15 board. You need to choose your next move.
+
+    # Requirements:
+    1. Respond only with ```json\n{{"x": int, "y": int}}\n```
+    2. Choose an empty position (0). 
+    3. Occupied positions (1 or 2) cannot be chosen.
+    4. Do not include any explanations or additional text.
+    5. The x and y coordinates should be integers between 0 and 14.
+    
+    # Information:
+    1. The board state is: {board_state}. 
+    2. You are player {player}. 
+    3. The following positions are occupied by player 1 (black): {[(i, j) for i in range(15) for j in range(15) if board_state[i][j] == 1]}.
+    4. The following positions are occupied by player 2 (white): {[(i, j) for i in range(15) for j in range(15) if board_state[i][j] == 2]}.
+    """
+    if error:
+        prompt += f"\n    Previous error: {error}\n"
+    if custom_prompt:
+        prompt += f"\n    Custom instructions: {custom_prompt}\n"
+    return prompt
+
+def call_ai(board_state, player, api_key, model="gpt-3.5-turbo", url="", error="", custom_prompt=""):
     try:
         client = openai.OpenAI(api_key=api_key, base_url=url if url else None)
-        prompt = f"You are playing Gomoku on a 15x15 board. The board state is: {board_state}. 0 is empty, 1 is black, 2 is white. You are player {player}. Choose your next move as coordinates (x,y) where x and y are integers from 0 to 14. Respond only with the coordinates in the format (x,y)."
+        prompt = get_prompt(board_state, player, error, custom_prompt)
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=10
+            max_tokens=50
         )
-        move_str = response.choices[0].message.content.strip()
-        # Parse (x,y)
-        x, y = map(int, move_str.strip('()').split(','))
+        move_str = response.choices[0].message.content
+        print(move_str)
+        # Try to extract JSON content
+        json_data = extract_json_content(move_str)
+        if json_data:
+            # Assume the first item is the move data
+            move_data = json_data[0] if isinstance(json_data, list) and json_data else json_data
+        else:
+            # Fallback to direct JSON parse
+            move_data = json.loads(move_str)
+        x, y = move_data['x'], move_data['y']
         return {'move': (x, y), 'log': f'AI player {player} chose ({x},{y})', 'error': None}
     except Exception as e:
         return {'move': None, 'log': f'AI player {player} error: {str(e)}', 'error': str(e)}

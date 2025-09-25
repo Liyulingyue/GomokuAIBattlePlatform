@@ -14,6 +14,7 @@ interface AIConfig {
   url: string
   key: string
   model: string
+  customPrompt: string
 }
 
 interface Move {
@@ -23,8 +24,8 @@ interface Move {
 }
 
 function Battle() {
-  const [ai1, setAi1] = useState<AIConfig>({ url: 'https://aistudio.baidu.com/llm/lmapi/v3', key: '', model: 'ernie-3.5-8k' })
-  const [ai2, setAi2] = useState<AIConfig>({ url: 'https://aistudio.baidu.com/llm/lmapi/v3', key: '', model: 'ernie-3.5-8k' })
+  const [ai1, setAi1] = useState<AIConfig>({ url: 'https://aistudio.baidu.com/llm/lmapi/v3', key: '', model: 'ernie-3.5-8k', customPrompt: '' })
+  const [ai2, setAi2] = useState<AIConfig>({ url: 'https://aistudio.baidu.com/llm/lmapi/v3', key: '', model: 'ernie-3.5-8k', customPrompt: '' })
   const [board, setBoard] = useState<number[][]>(Array(15).fill(null).map(() => Array(15).fill(0)))
   const [currentPlayer, setCurrentPlayer] = useState(1)
   const [winner, setWinner] = useState(0)
@@ -77,7 +78,7 @@ function Battle() {
 
   const isBoardFull = (boardState: number[][]) => boardState.every(row => row.every(cell => cell !== 0))
 
-  const requestMove = async (player: number, boardState: number[][]) => {
+  const requestMove = async (player: number, boardState: number[][], error: string | null = null) => {
     if (winner !== 0 || isBoardFull(boardState)) return
 
     setLoading(true)
@@ -89,7 +90,9 @@ function Battle() {
       const response = await axios.post('http://localhost:8000/next_move', {
         board: boardState,
         current_player: player,
-        ai_config: aiConfig
+        ai_config: aiConfig,
+        error: error || "",
+        custom_prompt: aiConfig.customPrompt
       })
 
       const result = response.data
@@ -229,7 +232,7 @@ function Battle() {
                     下一步
                   </Button>
                   <Button
-                    onClick={() => requestMove(currentPlayer, board)}
+                    onClick={() => requestMove(currentPlayer, board, error)}
                     disabled={!gameStarted || canConfirm || loading || winner !== 0 || isBoardFull(board)}
                     size="large"
                   >

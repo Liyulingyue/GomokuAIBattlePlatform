@@ -22,6 +22,8 @@ class NextMoveRequest(BaseModel):
     board: list[list[int]]
     current_player: int
     ai_config: AIConfig
+    error: str = ""
+    custom_prompt: str = ""
 
 @app.get("/")
 async def read_root():
@@ -29,5 +31,5 @@ async def read_root():
 
 @app.post("/next_move")
 async def next_move(request: NextMoveRequest):
-    result = call_ai(request.board, request.current_player, request.ai_config.key, request.ai_config.model, request.ai_config.url)
+    result = call_ai(request.board, request.current_player, request.ai_config.key, request.ai_config.model, request.ai_config.url, request.error, request.custom_prompt)
     return result

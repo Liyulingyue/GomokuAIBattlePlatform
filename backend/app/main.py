@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from .gomoku import call_ai
+from .routes import auth_router, rooms_router, game_router, messages_router
 
 app = FastAPI()
 
@@ -13,23 +12,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class AIConfig(BaseModel):
-    url: str = ""
-    key: str
-    model: str = "gpt-3.5-turbo"
-
-class NextMoveRequest(BaseModel):
-    board: list[list[int]]
-    current_player: int
-    ai_config: AIConfig
-    error: str = ""
-    custom_prompt: str = ""
+# 注册路由
+app.include_router(auth_router)
+app.include_router(rooms_router)
+app.include_router(game_router)
+app.include_router(messages_router)
 
 @app.get("/")
 async def read_root():
     return {"Hello": "World"}
-
-@app.post("/next_move")
-async def next_move(request: NextMoveRequest):
-    result = call_ai(request.board, request.current_player, request.ai_config.key, request.ai_config.model, request.ai_config.url, request.error, request.custom_prompt)
-    return result

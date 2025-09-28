@@ -2,8 +2,11 @@ import { Card, Button, Typography, Space, message, Divider } from 'antd'
 import { useState } from 'react'
 import axios from 'axios'
 import AIConfigComponent from './AIConfig'
+import type { MultiplayerRoom } from '../hooks/useMultiplayerBattle'
 
 const { Text } = Typography
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
 interface AIConfig {
   url: string
@@ -18,7 +21,8 @@ interface PlayerConfigPanelProps {
   username: string
   aiConfig: AIConfig
   setAiConfig: (config: AIConfig) => void
-  room: any
+  room: MultiplayerRoom
+  roomId: string
   loading: boolean
   onRoomUpdate: () => void
   onSendMessage?: (message: string) => void
@@ -31,6 +35,7 @@ function PlayerConfigPanel({
   aiConfig,
   setAiConfig,
   room,
+  roomId,
   loading,
   onRoomUpdate,
   onSendMessage
@@ -52,8 +57,8 @@ function PlayerConfigPanel({
 
       // 如果是锁定配置，先保存当前的AI配置
       if (locked) {
-        await axios.post('http://localhost:8000/set_ai_config', {
-          room_id: room.id || new URLSearchParams(window.location.search).get('roomId'),
+        await axios.post(`${API_BASE_URL}/set_ai_config`, {
+          room_id: roomId,
           username,
           ai_config: {
             url: aiConfig.url,
@@ -64,8 +69,8 @@ function PlayerConfigPanel({
         })
       }
 
-      await axios.post('http://localhost:8000/lock_config', {
-        room_id: room.id || new URLSearchParams(window.location.search).get('roomId'),
+      await axios.post(`${API_BASE_URL}/lock_config`, {
+        room_id: roomId,
         username,
         locked
       })
@@ -76,16 +81,20 @@ function PlayerConfigPanel({
       } else {
         message.success('配置已解锁')
       }
-    } catch (error: any) {
-      message.error(error.response?.data?.message || '操作失败')
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        message.error(error.response?.data?.message || '操作失败')
+      } else {
+        message.error('操作失败')
+      }
     }
   }
 
   const handleCancelUnlock = async () => {
     if (originalAiConfig) {
       try {
-        await axios.post('http://localhost:8000/lock_config', {
-          room_id: room.id || new URLSearchParams(window.location.search).get('roomId'),
+        await axios.post(`${API_BASE_URL}/lock_config`, {
+          room_id: roomId,
           username,
           locked: true,
           cancel_unlock: true
@@ -94,16 +103,20 @@ function PlayerConfigPanel({
         setOriginalAiConfig(null)
         onRoomUpdate()
         message.success('已取消解锁，恢复原始配置')
-      } catch (error: any) {
-        message.error(error.response?.data?.message || '操作失败')
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          message.error(error.response?.data?.message || '操作失败')
+        } else {
+          message.error('操作失败')
+        }
       }
     }
   }
 
   const handleSetReady = async (ready: boolean) => {
     try {
-      await axios.post('http://localhost:8000/set_ready', {
-        room_id: room.id || new URLSearchParams(window.location.search).get('roomId'),
+      await axios.post(`${API_BASE_URL}/set_ready`, {
+        room_id: roomId,
         username,
         ready
       })
@@ -111,8 +124,12 @@ function PlayerConfigPanel({
       if (ready) {
         message.success('已标记为准备完毕')
       }
-    } catch (error: any) {
-      message.error(error.response?.data?.message || '操作失败')
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        message.error(error.response?.data?.message || '操作失败')
+      } else {
+        message.error('操作失败')
+      }
     }
   }
 

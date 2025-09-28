@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from ..models import SendMessageRequest
 from ..shared import rooms
+from .rooms import update_room_activity
 import uuid
 
 router = APIRouter()
@@ -28,4 +29,5 @@ async def send_message(request: SendMessageRequest):
     if len(room["messages"]) > 10:
         room["messages"] = room["messages"][-10:]
     
+    update_room_activity(room_id)
     return {"success": True}

@@ -35,6 +35,11 @@ class LeaveRoomRequest(BaseModel):
     username: str
 
 
+class DeleteRoomRequest(BaseModel):
+    room_id: str
+    username: str
+
+
 class StepRequest(BaseModel):
     room_id: str
     username: str

@@ -5,6 +5,7 @@ from .schemas import (
     CreateRoomRequest,
     JoinRoomRequest,
     LeaveRoomRequest,
+    DeleteRoomRequest,
     StepRequest,
     SendMessageRequest,
     SetReadyRequest,

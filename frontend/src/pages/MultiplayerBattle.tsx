@@ -23,7 +23,8 @@ function MultiplayerBattle() {
     handleStep,
     handleConfirmMove,
     handleSendMessage,
-    handleLeaveRoom
+    handleLeaveRoom,
+    handleDisbandRoom
   } = useMultiplayerBattle()
 
   if (!room) {
@@ -39,6 +40,7 @@ function MultiplayerBattle() {
 
   const currentUsername = room.players[room.current_player - 1]
   const isMyTurn = currentUsername === username
+  const isOwner = room.owner === username
 
   const alertConfig = room.winner !== 0
     ? {
@@ -72,6 +74,7 @@ function MultiplayerBattle() {
               aiConfig={aiConfig}
               setAiConfig={setAiConfig}
               room={room}
+              roomId={roomId || room.id || ''}
               loading={loading}
               onRoomUpdate={fetchRoom}
               onSendMessage={handleSendMessage}
@@ -103,6 +106,8 @@ function MultiplayerBattle() {
                   onStep={handleStep}
                   onConfirmMove={handleConfirmMove}
                   onLeaveRoom={handleLeaveRoom}
+                  onDisbandRoom={isOwner ? handleDisbandRoom : undefined}
+                  isOwner={isOwner}
                 />
               </Space>
             </Card>
@@ -115,6 +120,7 @@ function MultiplayerBattle() {
                 aiConfig={aiConfig}
                 setAiConfig={setAiConfig}
                 room={room}
+                roomId={roomId || room.id || ''}
                 loading={loading}
                 onRoomUpdate={fetchRoom}
               />

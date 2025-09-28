@@ -2,7 +2,7 @@ import { Card, Divider } from 'antd'
 
 interface BattleLogProps {
   logs: string[]
-  messages?: Array<{username: string, message: string, timestamp: string}>
+  messages?: Array<{ username: string; message: string; timestamp?: string }>
 }
 
 function BattleLog({ logs, messages = [] }: BattleLogProps) {
@@ -17,7 +17,9 @@ function BattleLog({ logs, messages = [] }: BattleLogProps) {
             <div style={{ fontSize: '12px', color: '#666' }}>
               {messages.map((msg, idx) => (
                 <p key={idx} style={{ margin: 0, padding: '2px 0' }}>
-                  <strong>{msg.username}:</strong> {msg.message}
+                  <strong>{msg.username}</strong>
+                  {msg.timestamp ? ` (${msg.timestamp})` : ''}
+                  {`: ${msg.message}`}
                 </p>
               ))}
             </div>

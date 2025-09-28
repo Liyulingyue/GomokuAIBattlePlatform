@@ -31,3 +31,14 @@
 .nav-links a:hover {
   background: #34495e;
 }
+
+.nav-user {
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: background 0.3s;
+}
+
+.nav-user:hover {
+  background: #34495e;
+}

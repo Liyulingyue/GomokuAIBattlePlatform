@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from ..models import SetAIConfigRequest, LockConfigRequest, SetReadyRequest, StepRequest
 from ..shared import rooms
 from ..gomoku import call_ai
+from .rooms import update_room_activity
 
 router = APIRouter()
 
@@ -66,6 +67,7 @@ async def set_ai_config(request: SetAIConfigRequest):
         room["config_changes_left"][username] = changes_left - 1
     
     room["ai_configs"][username] = request.ai_config.dict()
+    update_room_activity(room_id)
     return {"success": True}
 
 
@@ -96,6 +98,7 @@ async def lock_config(request: LockConfigRequest):
         # 解锁配置：只解除锁定状态，不改变修改次数
         room["config_locked"][username] = False
     
+    update_room_activity(room_id)
     return {"success": True}
 
 
@@ -126,6 +129,7 @@ async def set_ready(request: SetReadyRequest):
         room["ready_status"][username] = False
         room["config_changes_left"][username] = 0
     
+    update_room_activity(room_id)
     return {"success": True}
 
 
@@ -167,21 +171,25 @@ async def step(request: StepRequest):
     if result["error"]:
         room["logs"].append(result["log"])
         room["error"] = result["error"]
+        update_room_activity(room_id)
         return {"success": False, "message": result["error"]}
     elif result["move"]:
         x, y = result["move"]
         if room["board"][x][y] != 0:
             room["logs"].append(f"{result['log']}，但位置 ({x},{y}) 已有棋子")
             room["error"] = "位置已被占用"
+            update_room_activity(room_id)
             return {"success": False, "message": "位置已被占用"}
         else:
             room["logs"].append(result["log"])
             room["pending_move"] = {"x": x, "y": y}
             room["can_confirm"] = True
             room["error"] = None
+            update_room_activity(room_id)
             return {"success": True, "pending_move": room["pending_move"]}
     else:
         room["logs"].append("AI未返回有效落子")
+        update_room_activity(room_id)
         return {"success": False, "message": "AI未返回有效落子"}
 
 
@@ -212,4 +220,5 @@ async def confirm_move(request: StepRequest):
     
     room["pending_move"] = None
     room["can_confirm"] = False
+    update_room_activity(room_id)
     return {"success": True}

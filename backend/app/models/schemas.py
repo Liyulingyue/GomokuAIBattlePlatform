@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import BaseModel, Field
 
 
@@ -68,3 +69,9 @@ class LockConfigRequest(BaseModel):
     username: str
     locked: bool
     cancel_unlock: bool = False
+
+
+class SetOwnerColorRequest(BaseModel):
+    room_id: str
+    username: str
+    color: Literal['black', 'white']

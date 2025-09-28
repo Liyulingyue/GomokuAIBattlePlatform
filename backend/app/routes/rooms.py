@@ -1,5 +1,11 @@
 from fastapi import APIRouter
-from ..models import CreateRoomRequest, JoinRoomRequest, LeaveRoomRequest, DeleteRoomRequest
+from ..models import (
+    CreateRoomRequest,
+    JoinRoomRequest,
+    LeaveRoomRequest,
+    DeleteRoomRequest,
+    SetOwnerColorRequest,
+)
 from ..shared import used_usernames, rooms, ensure_username_registered
 import uuid
 import time
@@ -11,6 +17,7 @@ def init_room():
     return {
         "players": [],
         "owner": None,
+        "owner_preferred_color": "black",
         "board": [[0 for _ in range(15)] for _ in range(15)],
         "current_player": 1,
         "ai_configs": {},
@@ -34,6 +41,25 @@ def update_room_activity(room_id: str):
     """更新房间最后活动时间"""
     if room_id in rooms:
         rooms[room_id]["last_activity"] = time.time()
+
+
+def apply_owner_color(room: dict) -> None:
+    owner = room.get("owner")
+    if not owner or owner not in room.get("players", []):
+        return
+
+    preference = room.get("owner_preferred_color", "black")
+    others = [player for player in room["players"] if player != owner]
+
+    if preference == "black":
+        new_order = [owner] + others
+    else:
+        new_order = others + [owner]
+
+    room["players"] = new_order
+
+    if not room.get("moves"):
+        room["current_player"] = 1
 
 
 def get_room_id_by_username(username: str) -> str | None:
@@ -115,6 +141,7 @@ async def create_room(request: CreateRoomRequest):
     rooms[room_id] = init_room()
     rooms[room_id]["players"].append(username)
     rooms[room_id]["owner"] = username
+    apply_owner_color(rooms[room_id])
     update_room_activity(room_id)
     return {"success": True, "room_id": room_id}
 
@@ -141,6 +168,7 @@ async def join_room(request: JoinRoomRequest):
         return {"success": False, "message": "房间已满"}
 
     room["players"].append(username)
+    apply_owner_color(room)
     update_room_activity(room_id)
     return {"success": True, "room_id": room_id}
 
@@ -173,6 +201,8 @@ async def leave_room(request: LeaveRoomRequest):
 
     if room.get("owner") == username:
         room["owner"] = room["players"][0]
+        room["owner_preferred_color"] = "black"
+        apply_owner_color(room)
     return {"success": True}
 
 
@@ -187,4 +217,27 @@ async def delete_room(request: DeleteRoomRequest):
     if room.get("owner") != username:
         return {"success": False, "message": "仅房主可以解散房间"}
     del rooms[room_id]
+    return {"success": True}
+
+
+@router.post("/set_owner_color")
+async def set_owner_color(request: SetOwnerColorRequest):
+    room_id = request.room_id
+    username = request.username
+    if room_id not in rooms:
+        return {"success": False, "message": "房间不存在"}
+    room = rooms[room_id]
+    ensure_username_registered(username)
+    if room.get("owner") != username:
+        return {"success": False, "message": "仅房主可以调整执棋颜色"}
+    if request.color not in ("black", "white"):
+        return {"success": False, "message": "无效的颜色"}
+    if room.get("moves"):
+        return {"success": False, "message": "对局已开始，无法调整颜色"}
+    if room.get("players") and all(room["ready_status"].get(player, False) for player in room["players"]):
+        return {"success": False, "message": "双方已完成整备，无法调整颜色"}
+
+    room["owner_preferred_color"] = request.color
+    apply_owner_color(room)
+    update_room_activity(room_id)
     return {"success": True}

@@ -11,4 +11,5 @@ from .schemas import (
     SetReadyRequest,
     SetAIConfigRequest,
     LockConfigRequest,
+    SetOwnerColorRequest,
 )

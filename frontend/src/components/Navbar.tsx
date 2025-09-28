@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Modal, Input, Button, message } from 'antd'
+import { GithubOutlined } from '@ant-design/icons'
 import './Navbar.css'
 import { useUser } from '../context/UserContext'
 
@@ -72,8 +73,23 @@ function Navbar() {
           <li><Link to="/battle">单人AI测试</Link></li>
           <li><Link to="/room">多人对战</Link></li>
         </ul>
-        <div className="nav-user" onClick={handleUsernameClick}>
-          {initializing ? '加载中...' : username || '未命名用户'}
+        <div className="nav-actions">
+          <a
+            className="nav-source"
+            href="https://github.com/Liyulingyue/GomokuAIBattlePlatform"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GomokuAIBattlePlatform GitHub repository"
+          >
+            <GithubOutlined className="nav-source-icon" />
+            <span className="nav-source-text">
+              <span className="nav-source-repo">GomokuAIBattlePlatform</span>
+              <span className="nav-source-owner">Liyulingyue</span>
+            </span>
+          </a>
+          <div className="nav-user" onClick={handleUsernameClick}>
+            {initializing ? '加载中...' : username || '未命名用户'}
+          </div>
         </div>
       </nav>
       <Modal

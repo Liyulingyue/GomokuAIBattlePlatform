@@ -17,6 +17,7 @@ interface AIConfig {
 
 interface PlayerConfigPanelProps {
   playerName: string
+  colorLabel: string
   isCurrentUser: boolean
   username: string
   aiConfig: AIConfig
@@ -30,6 +31,7 @@ interface PlayerConfigPanelProps {
 
 function PlayerConfigPanel({
   playerName,
+  colorLabel,
   isCurrentUser,
   username,
   aiConfig,
@@ -135,7 +137,7 @@ function PlayerConfigPanel({
 
   if (!isCurrentUser) {
     return (
-      <Card title={`${playerName} (黑棋)`} style={{ flex: '0 0 300px' }}>
+  <Card title={`${playerName} (${colorLabel})`} style={{ flex: '0 0 300px' }}>
         <div>
           <Text strong>AI配置: {room.ai_configs?.[playerName] ? '已设置' : '未设置'}</Text>
           <br />
@@ -146,7 +148,7 @@ function PlayerConfigPanel({
   }
 
   return (
-    <Card title={`${playerName} (黑棋)`} style={{ flex: '0 0 300px' }}>
+  <Card title={`${playerName} (${colorLabel})`} style={{ flex: '0 0 300px' }}>
       <AIConfigComponent
         ai={aiConfig}
         setAi={setAiConfig}

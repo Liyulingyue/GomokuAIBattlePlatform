@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { message } from 'antd'
@@ -16,6 +16,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000
 export interface MultiplayerRoom {
   id?: string
   players: string[]
+  owner?: string
+  owner_preferred_color?: 'black' | 'white'
   current_player: number
   winner: number
   can_confirm: boolean
@@ -28,7 +30,6 @@ export interface MultiplayerRoom {
   config_locked: Record<string, boolean | undefined>
   ready_status: Record<string, boolean | undefined>
   config_changes_left: Record<string, number | undefined>
-  owner?: string
   error?: string | null
 }
 
@@ -45,6 +46,8 @@ export function useMultiplayerBattle() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [shouldPoll, setShouldPoll] = useState(true)
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const { username, initializing, login } = useUser()
 
   useEffect(() => {
@@ -54,8 +57,16 @@ export function useMultiplayerBattle() {
     }
   }, [roomId, navigate])
 
+  const stopPolling = useCallback(() => {
+    setShouldPoll(false)
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+      pollIntervalRef.current = null
+    }
+  }, [])
+
   const fetchRoom = useCallback(async () => {
-    if (!roomId) {
+    if (!roomId || !shouldPoll) {
       return
     }
     try {
@@ -63,20 +74,37 @@ export function useMultiplayerBattle() {
       if (response.data.success) {
         setRoom(response.data.room as MultiplayerRoom)
       } else {
-        message.error(response.data.message)
+        const messageText = response.data.message ?? '房间不可用'
+        message.error(messageText)
+        if (messageText.includes('房间不存在')) {
+          stopPolling()
+          setRoom(null)
+          navigate('/room')
+        }
       }
     } catch (error) {
       console.error('获取房间失败', error)
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status
+        if (status === 404) {
+          stopPolling()
+          setRoom(null)
+          message.error('房间不存在，正在返回大厅')
+          navigate('/room')
+          return
+        }
+      }
+      // 对于瞬时错误，保持轮询但提示
+      message.warning('暂时无法获取房间信息，将自动重试')
     }
-  }, [roomId])
+  }, [roomId, navigate, shouldPoll, stopPolling])
 
   useEffect(() => {
-    if (initializing || !roomId) {
+    if (initializing || !roomId || !shouldPoll) {
       return
     }
 
     let active = true
-    let interval: ReturnType<typeof setInterval> | null = null
 
     const prepare = async () => {
       if (!username) {
@@ -92,19 +120,23 @@ export function useMultiplayerBattle() {
         return
       }
 
-  await fetchRoom()
-  interval = setInterval(fetchRoom, 2000)
+      await fetchRoom()
+      if (!active) {
+        return
+      }
+      pollIntervalRef.current = setInterval(fetchRoom, 2000)
     }
 
     prepare()
 
     return () => {
       active = false
-      if (interval) {
-        clearInterval(interval)
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+        pollIntervalRef.current = null
       }
     }
-  }, [initializing, roomId, username, login, fetchRoom, navigate])
+  }, [initializing, roomId, username, login, fetchRoom, navigate, shouldPoll])
 
   const handleStep = async () => {
     // 前端检查：AI配置必须锁定才能执行推理
@@ -191,6 +223,8 @@ export function useMultiplayerBattle() {
         room_id: roomId,
         username
       })
+      stopPolling()
+      setRoom(null)
       navigate('/room')
     } catch (error) {
       console.error('离开房间失败', error)
@@ -213,12 +247,64 @@ export function useMultiplayerBattle() {
       } else {
         message.error(response.data.message ?? '解散房间失败')
       }
+      stopPolling()
+      setRoom(null)
       navigate('/room')
     } catch (error) {
       console.error('解散房间失败', error)
       message.error('解散房间失败')
     }
   }
+
+  const handleSetOwnerColor = async (color: 'black' | 'white') => {
+    if (!roomId || !username) {
+      message.error('房间或用户名信息缺失')
+      return
+    }
+    if (room) {
+      if (room.moves.length > 0) {
+        message.error('对局已开始，无法调整颜色')
+        return
+      }
+      const players = room.players ?? []
+      if (players.length > 0 && players.every((player) => room.ready_status?.[player] ?? false)) {
+        message.error('双方已完成整备，无法调整颜色')
+        return
+      }
+    }
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/rooms/set_owner_color`, {
+        room_id: roomId,
+        username,
+        color
+      })
+      if (!response.data.success) {
+        message.error(response.data.message ?? '调整执棋颜色失败')
+      } else {
+        message.success(color === 'black' ? '您已选择执黑' : '您已选择执白')
+      }
+      await fetchRoom()
+    } catch (error) {
+      console.error('调整执棋颜色失败', error)
+      message.error('调整执棋颜色失败')
+    }
+  }
+
+  const canAdjustOwnerColor = useMemo(() => {
+    if (!room) {
+      return false
+    }
+    if (room.moves.length > 0) {
+      return false
+    }
+    const players = room.players ?? []
+    if (players.length === 0) {
+      return true
+    }
+    const allReady = players.every((player) => room.ready_status?.[player] ?? false)
+    return !allReady
+  }, [room])
 
   return {
     room,
@@ -233,6 +319,8 @@ export function useMultiplayerBattle() {
     handleConfirmMove,
     handleSendMessage,
     handleLeaveRoom,
-    handleDisbandRoom
+    handleDisbandRoom,
+    handleSetOwnerColor,
+    canAdjustOwnerColor
   }
 }

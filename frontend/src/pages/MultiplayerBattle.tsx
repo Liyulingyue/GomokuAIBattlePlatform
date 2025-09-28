@@ -24,7 +24,9 @@ function MultiplayerBattle() {
     handleConfirmMove,
     handleSendMessage,
     handleLeaveRoom,
-    handleDisbandRoom
+    handleDisbandRoom,
+    handleSetOwnerColor,
+    canAdjustOwnerColor
   } = useMultiplayerBattle()
 
   if (!room) {
@@ -41,6 +43,23 @@ function MultiplayerBattle() {
   const currentUsername = room.players[room.current_player - 1]
   const isMyTurn = currentUsername === username
   const isOwner = room.owner === username
+  const ownerPreferredColor = room.owner_preferred_color ?? 'black'
+
+  const getColorLabel = (playerName: string | undefined, index: number): string => {
+    if (!playerName) {
+      return index === 0 ? '黑棋' : '白棋'
+    }
+    if (playerName === room.owner) {
+      if (ownerPreferredColor === 'white') {
+        if (room.players.length < 2 && index === 0) {
+          return '白棋（等待对手执黑）'
+        }
+        return '白棋'
+      }
+      return '黑棋'
+    }
+    return index === 0 ? '黑棋' : '白棋'
+  }
 
   const alertConfig = room.winner !== 0
     ? {
@@ -69,6 +88,7 @@ function MultiplayerBattle() {
           <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
             <PlayerConfigPanel
               playerName={room.players[0]}
+              colorLabel={getColorLabel(room.players[0], 0)}
               isCurrentUser={room.players[0] === username}
               username={username || ''}
               aiConfig={aiConfig}
@@ -108,6 +128,9 @@ function MultiplayerBattle() {
                   onLeaveRoom={handleLeaveRoom}
                   onDisbandRoom={isOwner ? handleDisbandRoom : undefined}
                   isOwner={isOwner}
+                  ownerPreferredColor={ownerPreferredColor}
+                  onSetOwnerColor={isOwner ? handleSetOwnerColor : undefined}
+                  canAdjustOwnerColor={canAdjustOwnerColor}
                 />
               </Space>
             </Card>
@@ -115,6 +138,7 @@ function MultiplayerBattle() {
             {room.players[1] ? (
               <PlayerConfigPanel
                 playerName={room.players[1]}
+                colorLabel={getColorLabel(room.players[1], 1)}
                 isCurrentUser={room.players[1] === username}
                 username={username || ''}
                 aiConfig={aiConfig}

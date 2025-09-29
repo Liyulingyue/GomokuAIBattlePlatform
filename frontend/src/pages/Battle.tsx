@@ -10,6 +10,8 @@ import './Battle.css'
 const { Content } = Layout
 const { Title, Text } = Typography
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+
 interface AIConfig {
   url: string
   key: string
@@ -87,7 +89,7 @@ function Battle() {
     const aiConfig = player === 1 ? ai1 : ai2
 
     try {
-      const response = await axios.post('http://localhost:8000/next_move', {
+      const response = await axios.post(`${API_BASE_URL}/next_move`, {
         board: boardState,
         current_player: player,
         ai_config: aiConfig,

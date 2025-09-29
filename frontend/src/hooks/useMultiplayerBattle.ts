@@ -195,6 +195,69 @@ export function useMultiplayerBattle() {
     }
   }
 
+  // 新增：自动执行下一步并确认落子的合并函数
+  const handleStepAndConfirm = async () => {
+    // 前端检查：AI配置必须锁定才能执行推理
+    if (!roomId) {
+      message.error('房间信息缺失')
+      return
+    }
+    if (!username) {
+      message.error('用户名未准备好，请稍后重试')
+      return
+    }
+    if (!room || !room.config_locked || !room.config_locked[username]) {
+      message.error('请先锁定AI配置才能执行推理')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      // 步骤1：执行AI推理
+      const stepResponse = await axios.post(`${API_BASE_URL}/step`, {
+        room_id: roomId,
+        username
+      })
+      
+      if (!stepResponse.data.success) {
+        setError(stepResponse.data.message)
+        message.error(stepResponse.data.message || 'AI推理失败')
+        return
+      }
+
+      // 刷新房间状态以获取AI的落子
+      await fetchRoom()
+
+      // 步骤2：自动确认落子
+      const confirmResponse = await axios.post(`${API_BASE_URL}/confirm_move`, {
+        room_id: roomId,
+        username
+      })
+
+      if (confirmResponse.data.success) {
+        message.success('AI已完成落子')
+      } else {
+        message.error('落子确认失败')
+      }
+
+      // 最终刷新房间状态
+      await fetchRoom()
+    } catch (error) {
+      console.error('执行并确认落子失败', error)
+      if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data?.message || '操作失败'
+        setError(errorMsg)
+        message.error(errorMsg)
+      } else {
+        setError('操作失败')
+        message.error('操作失败')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSendMessage = async (messageText: string) => {
     if (!roomId || !username) {
       message.error('房间或用户名信息缺失')
@@ -317,6 +380,7 @@ export function useMultiplayerBattle() {
     fetchRoom,
     handleStep,
     handleConfirmMove,
+    handleStepAndConfirm, // 新增的合并函数
     handleSendMessage,
     handleLeaveRoom,
     handleDisbandRoom,

@@ -7,6 +7,7 @@ interface BattleControlsProps {
   loading: boolean
   onStep: () => void | Promise<void>
   onConfirmMove: () => void | Promise<void>
+  onStepAndConfirm?: () => void | Promise<void> // 新增合并函数
   onLeaveRoom: () => void | Promise<void>
   onDisbandRoom?: () => void | Promise<void>
   isOwner?: boolean
@@ -21,6 +22,7 @@ function BattleControls({
   loading,
   onStep,
   onConfirmMove,
+  onStepAndConfirm, // 新增
   onLeaveRoom,
   onDisbandRoom,
   isOwner,
@@ -37,9 +39,22 @@ function BattleControls({
 
   return (
     <Space direction="vertical" size="middle">
-            <Space size="middle">
+      {/* 新增的一键执行按钮 */}
+      {onStepAndConfirm && (
         <Button
           type="primary"
+          onClick={onStepAndConfirm}
+          disabled={!isMyTurn || room.winner !== 0 || canConfirm || loading}
+          size="large"
+          style={{ width: '100%' }}
+        >
+          🚀 一键执行并落子
+        </Button>
+      )}
+      
+      {/* 原有的分步操作按钮 */}
+      <Space size="middle">
+        <Button
           onClick={onStep}
           disabled={!isMyTurn || room.winner !== 0 || canConfirm || loading}
           size="large"

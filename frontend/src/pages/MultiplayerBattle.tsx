@@ -22,6 +22,7 @@ function MultiplayerBattle() {
     fetchRoom,
     handleStep,
     handleConfirmMove,
+    handleStepAndConfirm, // 新增
     handleSendMessage,
     handleLeaveRoom,
     handleDisbandRoom,
@@ -125,6 +126,7 @@ function MultiplayerBattle() {
                   loading={loading}
                   onStep={handleStep}
                   onConfirmMove={handleConfirmMove}
+                  onStepAndConfirm={handleStepAndConfirm} // 新增
                   onLeaveRoom={handleLeaveRoom}
                   onDisbandRoom={isOwner ? handleDisbandRoom : undefined}
                   isOwner={isOwner}

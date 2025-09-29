@@ -175,7 +175,13 @@ async def step(request: StepRequest):
         return {"success": False, "message": result["error"]}
     elif result["move"]:
         x, y = result["move"]
-        if room["board"][x][y] != 0:
+        # 检查坐标是否在棋盘范围内
+        if not (0 <= x < 15 and 0 <= y < 15):
+            room["logs"].append(f"{result['log']}，但位置 ({x},{y}) 超出棋盘范围")
+            room["error"] = "坐标超出范围"
+            update_room_activity(room_id)
+            return {"success": False, "message": "坐标超出范围"}
+        elif room["board"][x][y] != 0:
             room["logs"].append(f"{result['log']}，但位置 ({x},{y}) 已有棋子")
             room["error"] = "位置已被占用"
             update_room_activity(room_id)
@@ -246,6 +252,24 @@ async def next_move(request: NextMoveRequest):
         error=request.error,
         custom_prompt=ai_config["custom_prompt"]
     )
+    
+    # 检查AI返回的坐标是否有效
+    if result.get("move"):
+        x, y = result["move"]
+        # 检查坐标是否在棋盘范围内
+        if not (0 <= x < 15 and 0 <= y < 15):
+            return {
+                "move": None,
+                "log": f"AI返回了无效坐标 ({x},{y})，超出棋盘范围",
+                "error": "坐标超出范围"
+            }
+        # 检查位置是否已被占用
+        if request.board[x][y] != 0:
+            return {
+                "move": None,
+                "log": f"AI返回了无效坐标 ({x},{y})，位置已被占用",
+                "error": "位置已被占用"
+            }
     
     return {
         "move": result.get("move"),

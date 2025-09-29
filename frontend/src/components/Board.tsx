@@ -10,14 +10,14 @@ function Board({ board }: BoardProps) {
 
   return (
     <div className="board-container">
-      <svg width={size * cellSize + 40} height={size * cellSize + 40} className="board-svg">
+      <svg width={(size - 1) * cellSize + 40} height={(size - 1) * cellSize + 40} className="board-svg">
         {/* 绘制网格线 */}
-        {Array.from({ length: size + 1 }, (_, i) => (
+        {Array.from({ length: size }, (_, i) => (
           <g key={i}>
             <line
               x1={20}
               y1={20 + i * cellSize}
-              x2={20 + size * cellSize}
+              x2={20 + (size - 1) * cellSize}
               y2={20 + i * cellSize}
               stroke="#000"
               strokeWidth="1"
@@ -26,7 +26,7 @@ function Board({ board }: BoardProps) {
               x1={20 + i * cellSize}
               y1={20}
               x2={20 + i * cellSize}
-              y2={20 + size * cellSize}
+              y2={20 + (size - 1) * cellSize}
               stroke="#000"
               strokeWidth="1"
             />

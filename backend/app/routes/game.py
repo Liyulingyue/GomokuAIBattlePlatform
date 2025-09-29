@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from ..models import SetAIConfigRequest, LockConfigRequest, SetReadyRequest, StepRequest
+from ..models import SetAIConfigRequest, LockConfigRequest, SetReadyRequest, StepRequest, NextMoveRequest
 from ..shared import rooms
 from ..gomoku import call_ai
 from .rooms import update_room_activity
@@ -222,3 +222,33 @@ async def confirm_move(request: StepRequest):
     room["can_confirm"] = False
     update_room_activity(room_id)
     return {"success": True}
+
+
+@router.post("/next_move")
+async def next_move(request: NextMoveRequest):
+    """
+    单机AI对战接口 - 用于Battle页面
+    """
+    ai_config = {
+        "key": request.ai_config.key,
+        "model": request.ai_config.model,
+        "url": request.ai_config.url,
+        "custom_prompt": request.ai_config.custom_prompt
+    }
+    
+    # 调用AI获取下一步
+    result = call_ai(
+        board_state=request.board,
+        player=request.current_player,
+        api_key=ai_config["key"],
+        model=ai_config["model"],
+        url=ai_config["url"],
+        error=request.error,
+        custom_prompt=ai_config["custom_prompt"]
+    )
+    
+    return {
+        "move": result.get("move"),
+        "log": result.get("log", "AI正在思考..."),
+        "error": result.get("error")
+    }

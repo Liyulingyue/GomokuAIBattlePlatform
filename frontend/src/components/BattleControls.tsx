@@ -5,6 +5,7 @@ interface BattleControlsProps {
   room: Pick<MultiplayerRoom, 'players' | 'current_player' | 'winner' | 'can_confirm' | 'moves'>
   username: string
   loading: boolean
+  error?: string | null // 新增错误状态
   onStep: () => void | Promise<void>
   onConfirmMove: () => void | Promise<void>
   onStepAndConfirm?: () => void | Promise<void> // 新增合并函数
@@ -20,6 +21,7 @@ function BattleControls({
   room,
   username,
   loading,
+  error, // 新增
   onStep,
   onConfirmMove,
   onStepAndConfirm, // 新增
@@ -32,6 +34,7 @@ function BattleControls({
 }: BattleControlsProps) {
   const isMyTurn = room.players && room.players[room.current_player - 1] === username
   const canConfirm = room.can_confirm
+  const hasError = !!error
   const ownerColorValue = ownerPreferredColor ?? 'black'
   const ownerColorTip = canAdjustOwnerColor
     ? '调整执棋颜色'
@@ -48,7 +51,7 @@ function BattleControls({
           size="large"
           style={{ width: '100%' }}
         >
-          🚀 一键执行并落子
+          {hasError ? '� 重试执行并落子' : '�🚀 一键执行并落子'}
         </Button>
       )}
       
@@ -59,7 +62,7 @@ function BattleControls({
           disabled={!isMyTurn || room.winner !== 0 || canConfirm || loading}
           size="large"
         >
-          执行下一步
+          {hasError ? '🔄 重试执行' : '执行下一步'}
         </Button>
         <Button
           onClick={onConfirmMove}

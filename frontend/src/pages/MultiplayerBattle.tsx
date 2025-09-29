@@ -70,7 +70,7 @@ function MultiplayerBattle() {
     : error
       ? {
           type: 'error' as const,
-          message: `❌ 错误: ${error}`
+          message: `❌ AI思考失败: ${error}。请检查AI配置或修改提示词后重试。`
         }
       : {
           type: 'info' as const,
@@ -124,6 +124,7 @@ function MultiplayerBattle() {
                   room={room}
                   username={username || ''}
                   loading={loading}
+                  error={error} // 新增错误状态
                   onStep={handleStep}
                   onConfirmMove={handleConfirmMove}
                   onStepAndConfirm={handleStepAndConfirm} // 新增

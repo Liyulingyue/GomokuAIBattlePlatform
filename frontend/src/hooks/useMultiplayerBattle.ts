@@ -162,13 +162,19 @@ export function useMultiplayerBattle() {
       })
       if (response.data.success) {
         message.success('AI已思考完成，请确认落子')
+        setError(null) // 成功时清除错误
       } else {
-        setError(response.data.message)
+        // AI思考失败，显示错误信息但不自动重试
+        const errorMsg = response.data.message || 'AI思考失败'
+        setError(errorMsg)
+        message.error(`${errorMsg}。请检查AI配置或修改提示词后重试。`)
       }
       await fetchRoom()
     } catch (error) {
       console.error('执行失败', error)
-      setError('执行失败')
+      const errorMsg = '网络请求失败'
+      setError(errorMsg)
+      message.error(`${errorMsg}，请检查网络连接后重试`)
     } finally {
       setLoading(false)
     }
@@ -221,15 +227,17 @@ export function useMultiplayerBattle() {
       })
       
       if (!stepResponse.data.success) {
-        setError(stepResponse.data.message)
-        message.error(stepResponse.data.message || 'AI推理失败')
+        // AI思考失败，不自动重试，让用户手动处理
+        const errorMsg = stepResponse.data.message || 'AI推理失败'
+        setError(errorMsg)
+        message.error(`${errorMsg}。请检查AI配置或修改提示词后重试。`)
         return
       }
 
       // 刷新房间状态以获取AI的落子
       await fetchRoom()
 
-      // 步骤2：自动确认落子
+      // 步骤2：自动确认落子（只有在AI思考成功时才执行）
       const confirmResponse = await axios.post(`${API_BASE_URL}/confirm_move`, {
         room_id: roomId,
         username
@@ -237,22 +245,22 @@ export function useMultiplayerBattle() {
 
       if (confirmResponse.data.success) {
         message.success('AI已完成落子')
+        setError(null) // 成功后清除任何错误状态
       } else {
-        message.error('落子确认失败')
+        const errorMsg = '落子确认失败'
+        setError(errorMsg)
+        message.error(`${errorMsg}，请重试`)
       }
 
       // 最终刷新房间状态
       await fetchRoom()
     } catch (error) {
       console.error('执行并确认落子失败', error)
-      if (axios.isAxiosError(error)) {
-        const errorMsg = error.response?.data?.message || '操作失败'
-        setError(errorMsg)
-        message.error(errorMsg)
-      } else {
-        setError('操作失败')
-        message.error('操作失败')
-      }
+      const errorMsg = axios.isAxiosError(error) 
+        ? (error.response?.data?.message || '网络请求失败')
+        : '操作失败'
+      setError(errorMsg)
+      message.error(`${errorMsg}，请检查网络连接后重试`)
     } finally {
       setLoading(false)
     }

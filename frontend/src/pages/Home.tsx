@@ -85,7 +85,7 @@ function Home() {
               <Text strong>Model：</Text>
               <span>
                 填写要调用的模型标识，如 <code>ernie-3.5-8k</code> 或 <code>gpt-4o-mini</code>，需与服务端对接一致。可在
-                {' '}<a className="home-link" href="https://ai.baidu.com/ai-doc/AISTUDIO/rm344erns" target="_blank" rel="noopener noreferrer">官方模型列表</a>{' '}
+                {' '}<a className="home-link" href="https://ai.baidu.com/ai-doc/AISTUDIO/rm344erns" target="_blank" rel="noopener noreferrer">百度 AISTUDIO 官方模型列表</a>{' '}
                 查看支持的模型名称。
               </span>
             </li>
